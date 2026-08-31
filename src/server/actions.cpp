@@ -330,6 +330,16 @@ namespace umbriel {
     }
 
     // Session
+    bool actionQueue(Server& server, const Keybind& bind, std::string* /*error*/) {
+      const auto* arg = payloadIf<ArrayArg>(bind);
+      for (auto& action : arg->actionQueue) {
+        if (!server.executeKeybindAction(action)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     bool actionSpawn(Server& server, const Keybind& bind, std::string* /*error*/) {
       const auto* arg = payloadIf<SpawnArg>(bind);
       server.spawn(arg != nullptr ? arg->command.c_str() : "", nullptr, true);
@@ -1313,6 +1323,7 @@ namespace umbriel {
 
     constexpr std::array<ActionHandlerFn, static_cast<size_t>(KeybindAction::Count)> kActionHandlers = {
         nullptr,
+        &actionQueue,
         &actionSpawn,
         &actionWindowClose,
         &actionSessionQuit,
