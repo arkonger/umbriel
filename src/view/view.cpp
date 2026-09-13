@@ -2692,7 +2692,7 @@ namespace umbriel {
         if (fullArea.width > 0 && fullArea.height > 0) {
           wlr_xdg_toplevel_set_size(m_toplevel, fullArea.width, fullArea.height);
         }
-      } else if (wantTiled) {
+      } else if (wantTiled && (!rule.defaultPinned || !*rule.defaultPinned)) {
         const wlr_box usable = openingUsableArea(targetOutput);
 
         // No workspace yet (no output, or none active): fall back to a throwaway layout built from the global config,
