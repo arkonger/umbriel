@@ -2623,6 +2623,7 @@ namespace umbriel {
           && scratchpadManager->hasScratchpad(*rule.defaultScratchpad);
       const auto& scratchpadConfig = config().animation.scratchpad;
       const bool wantTiled = !openingInScratchpad
+          && (!rule.defaultPinned || !*rule.defaultPinned)
           && (rule.defaultFloating ? !*rule.defaultFloating : looksTiled(m_toplevel, openingParented()));
 
       // Resolve the workspace this view will attach to, so the output and layout that will actually arrange it are the
@@ -2692,7 +2693,7 @@ namespace umbriel {
         if (fullArea.width > 0 && fullArea.height > 0) {
           wlr_xdg_toplevel_set_size(m_toplevel, fullArea.width, fullArea.height);
         }
-      } else if (wantTiled && (!rule.defaultPinned || !*rule.defaultPinned)) {
+      } else if (wantTiled) {
         const wlr_box usable = openingUsableArea(targetOutput);
 
         // No workspace yet (no output, or none active): fall back to a throwaway layout built from the global config,
@@ -3755,7 +3756,9 @@ namespace umbriel {
       }
     }
 
-    if (!inScratchpad && changedInitialRule(rule.defaultPosition, initiallyApplied.defaultPosition)) {
+    if (!inScratchpad
+        && (!rule.defaultPinned || !*rule.defaultPinned)
+        && changedInitialRule(rule.defaultPosition, initiallyApplied.defaultPosition)) {
       if (!m_tiled) {
         placeInUsableArea(rule.defaultPosition);
       } else {
@@ -3769,6 +3772,7 @@ namespace umbriel {
     }
 
     if (!inScratchpad
+        && (!rule.defaultPinned || !*rule.defaultPinned)
         && changedInitialRule(rule.defaultFullscreen, initiallyApplied.defaultFullscreen)
         && *rule.defaultFullscreen
         && !m_toplevel->scheduled.fullscreen) {
@@ -3776,6 +3780,7 @@ namespace umbriel {
     }
 
     if (!inScratchpad
+        && (!rule.defaultPinned || !*rule.defaultPinned)
         && changedInitialRule(rule.defaultMaximizeToEdges, initiallyApplied.defaultMaximizeToEdges)
         && *rule.defaultMaximizeToEdges
         && !m_maximizedToEdges) {
@@ -3783,6 +3788,7 @@ namespace umbriel {
     }
 
     if (!inScratchpad
+        && (!rule.defaultPinned || !*rule.defaultPinned)
         && !openingParented()
         && changedInitialRule(rule.defaultMaximize, initiallyApplied.defaultMaximize)
         && *rule.defaultMaximize
