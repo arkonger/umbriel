@@ -1,6 +1,7 @@
 #include "layout/scrolling.h"
 
 #include "config/config.h"
+#include "view/view.h"
 
 #include <algorithm>
 #include <cmath>
@@ -465,6 +466,8 @@ namespace umbriel {
     }
     Column& source = m_columns[static_cast<size_t>(sourceColumn)];
     Column& destination = m_columns[static_cast<size_t>(destinationColumn)];
+    // Remember width for later expel
+    view->setSavedScrollingWidthFrac(source.widthFrac);
     ensureWeightCount(source);
     ensureWeightCount(destination);
     const int row = rowOf(view);
@@ -499,7 +502,9 @@ namespace umbriel {
       source.heightWeights.erase(source.heightWeights.begin() + row);
     }
     Column column;
-    column.widthFrac = m_config->scrolling.defaultWidthFraction.value_or(0.5);
+    // Restore saved width if exists
+    std::optional<double> width = view->getSavedScrollingWidthFrac();
+    column.widthFrac = width ? *width : m_config->scrolling.defaultWidthFraction.value_or(0.5);
     column.views.push_back(view);
     column.heightWeights.push_back(weight);
     const int destinationColumn = sourceColumn + (direction > 0 ? 1 : 0);
