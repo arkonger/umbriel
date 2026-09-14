@@ -2676,7 +2676,13 @@ namespace umbriel {
     m_namedScrollingColumnName = rule.defaultScrollingColumn;
     m_namedScrollingColumnOrder = rule.defaultScrollingColumnOrder;
     if (rule.defaultFloating) {
-      m_tiled = !*rule.defaultFloating;
+      if (rule.defaultPinned && *rule.defaultPinned) {
+        m_tiled = false;
+        m_restoreTiledAfterUnpin = true;
+        m_restoreTiledAfterUnpinOverride = true;
+      } else {
+        m_tiled = !*rule.defaultFloating;
+      }
     }
     const bool restoreTiled = m_tiled;
     // Unsettled when any rule uses a title pattern: the first handleSetTitle after map re-applies disruptive effects
@@ -3094,6 +3100,7 @@ namespace umbriel {
           && scratchpadManager->hasScratchpad(*rule.defaultScratchpad);
       const auto& scratchpadConfig = config().animation.scratchpad;
       const bool wantTiled = !openingInScratchpad
+          && (!rule.defaultPinned && !*rule.defaultPinned)
           && (rule.defaultFloating ? !*rule.defaultFloating : looksTiled(m_toplevel, openingParented()));
 
       // Resolve the workspace this view will attach to, so the output and layout that will actually arrange it are the
@@ -3702,7 +3709,11 @@ namespace umbriel {
       return;
     }
     if (pinned) {
-      m_restoreTiledAfterUnpin = m_tiled;
+      if (!m_restoreTiledAfterUnpinOverride) {
+        m_restoreTiledAfterUnpin = m_tiled;
+      } else {
+        m_restoreTiledAfterUnpinOverride = false;
+      }
       if (m_tiled) {
         setFloating(true, false);
       }
