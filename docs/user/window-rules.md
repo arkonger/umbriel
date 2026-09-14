@@ -111,10 +111,12 @@ honored.
 | `default_scrolling_width` | float | Scrolling | Initial extent as a fraction (0.1-1.0) of scrolling-axis extent. |
 | `default_position` | table | Floating | Initial position in pixels, from the given anchor point: `{ x = int, y = int, anchor = string }`. |
 
-Window size and position rules apply when the window is opened, like other rules,
+Window size and position rules apply when the window is first opened, like any other rule,
 except that a tiled window will save its default floating size and position for
-later. If the window then becomes floating, the rules will take effect. After
-this, it behaves like any other floating window, and will respect resizes as
+later, and likewise a floating window will save its default scrolling width. 
+When the window later becomes floating or scrolling for the first time, the rules will
+take effect as though it were a new window. 
+Afterwards, it behaves like any other window, and will respect resizes as
 expected. A size given in pixels always takes precedence over one given as a
 fraction. In some cases, pixels may be internally converted to fractions for
 better consistency across outputs. 
