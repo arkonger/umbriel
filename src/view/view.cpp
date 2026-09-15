@@ -2722,9 +2722,10 @@ namespace umbriel {
         } else if (wantMaximized && target != nullptr) {
           initial = target->initialMaximizedSize(this, tiledArea);
         } else {
-          const std::optional<double> widthFraction =
-              wantMaximized ? std::optional<double>(1.0) : rule.defaultScrollingWidth;
-          initial = layout.initialSize(tiledArea, widthFraction, target != nullptr ? target->focusedView() : nullptr);
+          initial = layout.initialSize(
+              tiledArea, wantMaximized, rule.defaultScrollingWidth, rule.defaultScrollingWidthPx,
+              target != nullptr ? target->focusedView() : nullptr
+          );
         }
         const XdgSizeHints hints = xdgSizeHints(m_toplevel);
         const int requestedWidth = initial.width;
@@ -3667,7 +3668,7 @@ namespace umbriel {
         && ownsNamedScrollingColumnWidth) {
       if (rule.defaultScrollingWidthPx) {
         m_displacedHome->pendingNamedScrollingColumnWidthPx = rule.defaultScrollingWidthPx;
-      } 
+      }
       if (rule.defaultScrollingWidth) {
         m_displacedHome->pendingNamedScrollingColumnWidth = rule.defaultScrollingWidth;
       }

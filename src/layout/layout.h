@@ -226,8 +226,10 @@ namespace umbriel {
     // (Electron and friends keep that buffer until they redraw). `ruleWidthFraction` is a window rule's default_width,
     // which is a viewport fraction and so means nothing to a splitting layout.
     // `splitAnchor` is the view whose leaf a subsequent focused insert would split; nullptr means append.
-    [[nodiscard]] virtual InitialSize
-    initialSize(const wlr_box& usable, std::optional<double> ruleWidthFraction, const View* splitAnchor) const = 0;
+    [[nodiscard]] virtual InitialSize initialSize(
+        const wlr_box& usable, bool wantMaximized, std::optional<double> ruleWidthFraction,
+        std::optional<int> ruleWidthPx, const View* splitAnchor
+    ) const = 0;
 
     [[nodiscard]] virtual std::optional<View*> focusHorizontalLeaf(const View* /*view*/, int /*direction*/) const {
       return std::nullopt;

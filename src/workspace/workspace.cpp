@@ -367,7 +367,7 @@ namespace umbriel {
   Layout::InitialSize Workspace::initialMaximizedSize(View* view, const wlr_box& usable) const {
     std::unique_ptr<Layout> preview = previewLayout();
     if (preview == nullptr) {
-      return m_layout->initialSize(usable, 1.0, m_focusedView);
+      return m_layout->initialSize(usable, true, std::nullopt, std::nullopt, m_focusedView);
     }
     preview->insertView(view, layoutAttachIndex(view));
     const int column = preview->columnOf(view);

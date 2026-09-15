@@ -796,11 +796,20 @@ namespace umbriel {
   }
 
   Layout::InitialSize ScrollingLayout::initialSize(
-      const wlr_box& usable, std::optional<double> ruleWidthFraction, const View* /*splitAnchor*/
+      const wlr_box& usable, bool wantMaximized, std::optional<double> ruleWidthFraction,
+      std::optional<int> ruleWidthPx, const View* /*splitAnchor*/
   ) const {
     const wlr_box content = contentArea(usable);
-    const std::optional<double> fraction =
-        ruleWidthFraction ? ruleWidthFraction : m_config->scrolling.defaultWidthFraction;
+    std::optional<double> fraction;
+    if (wantMaximized) {
+      fraction = std::optional<double>(1.0);
+    } else if (ruleWidthPx) {
+      fraction = getWidthFraction(content.width, *ruleWidthPx);
+    } else if (ruleWidthFraction) {
+      fraction = ruleWidthFraction;
+    } else {
+      fraction = m_config->scrolling.defaultWidthFraction;
+    }
     if (!fraction) {
       return vertical() ? InitialSize{.width = content.width, .height = 0}
                         : InitialSize{.width = 0, .height = content.height};
