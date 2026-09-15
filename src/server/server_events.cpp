@@ -2080,7 +2080,7 @@ namespace umbriel {
         continue;
       }
       const auto applyPendingNamedScrollingColumnWidth = [workspace](View* view, const View::DisplacedHome& home) {
-        if ((!home.pendingNamedScrollingColumnWidthPx || !home.pendingNamedScrollingColumnWidth)
+        if ((!home.pendingNamedScrollingColumnWidthPx && !home.pendingNamedScrollingColumnWidth)
             || !view->namedScrollingColumnName()) {
           return;
         }

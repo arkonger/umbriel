@@ -3667,7 +3667,8 @@ namespace umbriel {
         && ownsNamedScrollingColumnWidth) {
       if (rule.defaultScrollingWidthPx) {
         m_displacedHome->pendingNamedScrollingColumnWidthPx = rule.defaultScrollingWidthPx;
-      } else if (rule.defaultScrollingWidth) {
+      } 
+      if (rule.defaultScrollingWidth) {
         m_displacedHome->pendingNamedScrollingColumnWidth = rule.defaultScrollingWidth;
       }
     }
