@@ -84,7 +84,7 @@ shortcuts = false
 [[window_rule]]
 match.title = "^overview-scratchpad-transition$"
 default_floating = true
-default_size = [420, 260]
+default_floating_size_px = [420, 260]
 default_position = { x = 430, y = 230, anchor = "top_left" }
 EOF
 "$UMBRIEL" msg config-reload > /dev/null

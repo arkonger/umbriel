@@ -40,14 +40,14 @@ name = "actions"
 match.title = "^scratchpad-actions-foreground$"
 default_output = "HEADLESS-1"
 default_floating = true
-default_size = [420, 260]
+default_floating_size_px = [420, 260]
 default_position = { x = 430, y = 230, anchor = "top_left" }
 
 [[window_rule]]
 match.title = "^scratchpad-actions-close$"
 default_output = "HEADLESS-1"
 default_floating = true
-default_size = [420, 260]
+default_floating_size_px = [420, 260]
 EOF
 "$UMBRIEL" msg config-reload > /dev/null
 

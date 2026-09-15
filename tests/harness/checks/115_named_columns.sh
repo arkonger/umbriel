@@ -32,20 +32,20 @@ default_width_fraction = 0.5
 match.title = "^named-later$"
 default_scrolling_column = "browser-stack"
 default_scrolling_column_order = 20
-default_width = 0.6
+default_scrolling_width = 0.6
 
 [[window_rule]]
 match.title = "^named-first$"
 default_scrolling_column = "browser-stack"
-default_size = [300, 300]
+default_floating_size_px = [300, 300]
 default_scrolling_column_order = 10
-default_width = 0.25
+default_scrolling_width = 0.25
 
 [[window_rule]]
 match.title = "^named-delayed$"
 default_scrolling_column = "browser-stack"
 default_scrolling_column_order = 15
-default_width = 0.4
+default_scrolling_width = 0.4
 
 [[window_rule]]
 match.title = "^named-max-order$"

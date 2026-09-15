@@ -3,7 +3,7 @@
 # Omitting the scrolling default leaves the first width unconstrained, then
 # keeps the logical width chosen by the mapped client. Fractional and pixel
 # window rules remain authoritative. Initial sizing follows the output selected
-# by rules, and default_size outranks both fractional sources.
+# by rules, and pixel sources outrank fractional ones.
 set -euo pipefail
 
 readonly CLIENT="${UMBRIEL_SUBSURFACE_CLIENT:-./build-debug/tests/subsurface-client}"
@@ -46,13 +46,13 @@ default_output = "HEADLESS-2"
 [[window_rule]]
 match.app_id = "^fixed-width$"
 default_output = "HEADLESS-2"
-default_width = 0.75
+default_scrolling_width = 0.75
 
 [[window_rule]]
 match.app_id = "^pixel-width$"
 default_output = "HEADLESS-1"
-default_size = [1000, 600]
-default_width = 0.25
+default_scrolling_width_px = 1000
+default_scrolling_width = 0.25
 EOF
 "$UMBRIEL" msg config-reload > /dev/null
 
@@ -81,12 +81,12 @@ wait_for_width fixed-width 942
 wait_for_width pixel-width 1000
 first_configure_width=$(awk '/^first-configure / { print $2; exit }' "$UMBRIEL_RUNTIME_DIR/pixel-width.log")
 if [[ $first_configure_width != 1000 ]]; then
-  echo "default_size did not set the first configure width: $(<"$UMBRIEL_RUNTIME_DIR/pixel-width.log")"
+  echo "default_scrolling_width_px did not set the first configure width: $(<"$UMBRIEL_RUNTIME_DIR/pixel-width.log")"
   exit 1
 fi
 sleep 0.3
 if [[ $(window_width pixel-width) != 1000 ]]; then
-  echo "default_size width changed after first arrange: $($UMBRIEL windows --json)"
+  echo "default_scrolling_width_px width changed after first arrange: $($UMBRIEL windows --json)"
   exit 1
 fi
 
