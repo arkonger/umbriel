@@ -808,8 +808,6 @@ namespace umbriel {
     std::optional<double> fraction;
     if (wantMaximized) {
       fraction = std::optional<double>(1.0);
-    } else if (ruleWidthPx) {
-      fraction = getWidthFraction(content.width, *ruleWidthPx);
     } else if (ruleWidthFraction) {
       fraction = ruleWidthFraction;
     } else {
@@ -822,7 +820,10 @@ namespace umbriel {
     if (vertical()) {
       return {.width = content.width, .height = fractionalWidth(content.height, *fraction)};
     }
-    return {.width = fractionalWidth(content.width, *fraction), .height = content.height};
+    return {
+        .width = (ruleWidthPx && !wantMaximized) ? *ruleWidthPx : fractionalWidth(content.width, *fraction),
+        .height = content.height
+    };
   }
 
   wlr_box ScrollingLayout::targetBox(const View* view) const {
