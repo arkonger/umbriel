@@ -39,6 +39,7 @@ namespace umbriel {
   class ScratchpadManager;
   class WineColorManager;
   class Workspace;
+  enum class LayoutAttachOrigin;
   struct ResolvedWindowRule;
 
   class View : public SceneNode, public Animatable {
@@ -186,6 +187,11 @@ namespace umbriel {
     // its current pending or committed size.
     bool
     resizeFloatingFractions(const std::optional<double>& widthFraction, const std::optional<double>& heightFraction);
+    // Edge-anchored floating resize: `edges` names the moving edge and the
+    // opposite one stays put, so a positive `delta` (a fraction of the usable
+    // extent on that axis) grows the window until the usable extent or the
+    // client's size hints stop it. A fullscreen view is left alone.
+    void resizeFloatingEdge(uint32_t edges, double delta);
     // The size a float episode lands on: the remembered floating size, else the
     // last size the client acked, was configured with, or was assigned.
     [[nodiscard]] std::array<int, 2> floatingRestoreSize() const;
@@ -246,6 +252,8 @@ namespace umbriel {
     void togglePinned();
     // Restore the global pinned scene layer after temporary drag reparenting.
     void restorePinnedSceneParent();
+    // Apply the pinned state: reparent to the global pinned layer, resync presentation, and notify the overview.
+    void applyPinnedState();
     // Enable/disable the view's scene tree and its shadow container together.
     void setNodeEnabled(bool enabled);
     void raiseToTop();
@@ -425,7 +433,7 @@ namespace umbriel {
     void enterForeignOutput(Output* output);
     void leaveForeignOutput();
     void applyWindowRules(const ResolvedWindowRule& initiallyApplied);
-    bool attachToAvailableWorkspace(const ResolvedWindowRule& rule);
+    bool attachToAvailableWorkspace(const ResolvedWindowRule& rule, LayoutAttachOrigin origin);
     // `resolved` lets a caller that already resolved the rules pass them in. Rule resolution runs every regex in the
     // config, and applyDynamicRules is reached on focus changes and on every title change, so resolving twice per pass
     // is work a terminal that retitles per command pays repeatedly.
@@ -523,6 +531,9 @@ namespace umbriel {
     // Saved client state commonly requests maximization while the surface is
     // opening. Layout policy owns that transition; later requests are valid.
     bool m_acceptClientMaximizeRequests = false;
+    // With honor_restored_maximize off, suppress a restored maximize re-assert
+    // only through the first root commit after the opening gate.
+    bool m_consumeRestoredMaximizeRequest = false;
     wl_event_source* m_acceptClientMaximizeIdle = nullptr;
     bool m_xwayland = false;
     // False until the first setPosition/animateTo places the node; the initial
@@ -537,6 +548,7 @@ namespace umbriel {
     bool m_pinned = false;
     bool m_restoreTiledAfterUnpin = false;
     bool m_restoreTiledAfterUnpinOverride = false;
+    bool m_restorePinnedAfterFullscreen = false;
     // Set when a float toggle drops fullscreen: re-tiling restores fullscreen BEFORE the layout attach, so the client
     // never receives a transient column-sized configure (game engines latch it for input mapping and go dead outside
     // it). Cleared whenever fullscreen is left by any other path, so a client that chose windowed mode while floating

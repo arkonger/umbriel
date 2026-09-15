@@ -4,6 +4,7 @@
 #include "config/resolve.h"
 #include "config/store.h"
 #include "core/log.h"
+#include "core/tracy.h"
 #include "input/cursor.h"
 #include "input/seat.h"
 #include "layout/scrolling.h"
@@ -373,7 +374,7 @@ namespace umbriel {
     }
   }
 
-  bool View::attachToAvailableWorkspace(const ResolvedWindowRule& rule) {
+  bool View::attachToAvailableWorkspace(const ResolvedWindowRule& rule, LayoutAttachOrigin origin) {
     Output* preferred = m_server->outputFromWlr(m_server->preferredOutput());
     WorkspaceGroup* preferredGroup = preferred != nullptr ? preferred->workspaceGroup() : nullptr;
     WorkspaceGroup* targetGroup = windowRuleWorkspaceGroup(*m_server, rule, preferredGroup);
@@ -385,7 +386,7 @@ namespace umbriel {
     if (m_workspace != target) {
       return false;
     }
-    target->layoutAttach(this, rule.defaultWidth, defaultSizeWidth(rule));
+    target->layoutAttach(this, rule.defaultWidth, defaultSizeWidth(rule), origin);
     return true;
   }
 
@@ -1232,9 +1233,12 @@ namespace umbriel {
   // in the layout. Now that it is, notifyAloneStateChanged hands that state to the alone effect, so leaving alone
   // undoes it again. The seed is single-use: a later pass must not take over a state the user or the client chose.
   void View::settleOpeningAloneState() {
-    const bool clientRequested = m_aloneOpeningSeed == AloneSeed::Fullscreen
-        ? m_toplevel->requested.fullscreen
-        : m_aloneOpeningSeed == AloneSeed::Maximize && m_toplevel->requested.maximized;
+    // Restored maximize only steals alone ownership when the compositor honors it. Otherwise the alone rule owns the
+    // state like any other window, and the client's session flag is ignored.
+    const bool clientRequested = m_aloneOpeningSeed == AloneSeed::Fullscreen ? m_toplevel->requested.fullscreen
+                                                                             : m_aloneOpeningSeed == AloneSeed::Maximize
+            && m_toplevel->requested.maximized
+            && config().general.honorRestoredMaximize;
     if (clientRequested) {
       // The client has asked for the state itself since the opening configure, so it owns it.
       m_aloneOpeningSeed = AloneSeed::None;
@@ -1667,6 +1671,7 @@ namespace umbriel {
   }
 
   void View::updateBlur(int contentWidth, int contentHeight) {
+    UMBRIEL_ZONE("View::updateBlur");
     const wlr_box nodeBox{0, 0, contentWidth, contentHeight};
     m_decoration.updateBlur(
         m_sceneTree, m_toplevel->base->surface, nodeBox, m_toplevel->base->geometry, surfaceRadius(), nullptr,
@@ -1691,6 +1696,7 @@ namespace umbriel {
   }
 
   void View::updateShadow(int contentWidth, int contentHeight) {
+    UMBRIEL_ZONE("View::updateShadow");
     const int borderTotal = borderInset();
     m_decoration.updateShadow(
         contentWidth, contentHeight, borderTotal, decorated() ? config().appearance.cornerRadius : 0
@@ -2040,6 +2046,66 @@ namespace umbriel {
     requestFloatingSize(width, height);
   }
 
+  void View::resizeFloatingEdge(uint32_t edges, double delta) {
+    // Mirror the guard set of resizeFloatingFractions: a fullscreen view owns its
+    // size, a tiled one has no floating box, and a view with no usable area has
+    // nothing to size against.
+    if (!m_mapped || m_tiled || m_toplevel->current.fullscreen || m_toplevel->scheduled.fullscreen) {
+      return;
+    }
+    const wlr_box usable = floatingUsableArea();
+    if (usable.width <= 0 || usable.height <= 0) {
+      return;
+    }
+    const bool widthAxis = (edges & (WLR_EDGE_LEFT | WLR_EDGE_RIGHT)) != 0;
+    const auto current = floatingFraction(widthAxis);
+    if (!current) {
+      return;
+    }
+    // The same 0.1 fraction floor the fraction path enforces, so a hint-less
+    // client cannot collapse to a single pixel.
+    const double target = std::clamp(*current + delta, 0.1, 1.0);
+    const XdgSizeHints hints = xdgSizeHints(m_toplevel);
+    const auto [basisWidth, basisHeight] = floatingSize();
+    // A pending size and the position animation target form one logical box.
+    // Anchor that box rather than the in-flight scene node, so repeated actions
+    // keep the same far edge while the previous resize is still animating.
+    const wlr_box& geo = m_toplevel->base->geometry;
+    const wlr_box anchor{
+        .x = layoutTargetX() + geo.x,
+        .y = layoutTargetY() + geo.y,
+        .width = basisWidth,
+        .height = basisHeight,
+    };
+    const int width = widthAxis ? clampXdgWidth(floatingFractionSize(target, usable.width), hints) : basisWidth;
+    const int height = widthAxis ? basisHeight : clampXdgHeight(floatingFractionSize(target, usable.height), hints);
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    // Pin the edge opposite the named one, then take the same steps the fraction
+    // path does: drop a maximize, animate the change, and keep the window on
+    // screen. The origin animates to where the requested size puts it, over the
+    // same duration and curve as the size, so the opposite edge stays put for the
+    // whole resize instead of drifting while the client catches up with the
+    // configure.
+    //
+    // The anchor session stays open until the client answers the configure, so a
+    // client that commits a size other than the requested one (because of size
+    // hints, or because it refused the resize) still has the origin recomputed from
+    // the geometry that actually arrived. finishFloatingResize ends the session but
+    // leaves the anchor until the request settles, so that commit both re-pins the
+    // edge and retires the anchor.
+    const FloatingPoint anchoredOrigin =
+        anchoredContentOrigin(anchor, edges, {.x = 0, .y = 0, .width = width, .height = height});
+    m_floating.beginResize(anchor, edges);
+    dropMaximizedForResize();
+    requestFloatingSize(width, height);
+    beginResizeAnimation(width, height);
+    animateTo(anchoredOrigin.x - geo.x, anchoredOrigin.y - geo.y);
+    clampFloatingPositionForSize(width, height);
+    finishFloatingResize();
+  }
+
   void View::finishFloatingResize() { m_floating.endResize(); }
 
   void View::syncFloatingResizePosition() {
@@ -2048,7 +2114,21 @@ namespace umbriel {
     }
     const wlr_box& geo = m_toplevel->base->geometry;
     const FloatingPoint content = anchoredContentOrigin(*m_floating.anchor(), m_floating.edges(), geo);
-    setPosition(content.x - geo.x, content.y - geo.y);
+    const int x = content.x - geo.x;
+    const int y = content.y - geo.y;
+    // A keybind resize animates the origin along with the size, so a commit whose
+    // geometry implies a different origin retargets that animation instead of
+    // snapping it, which is what re-pins the edge when the client commits a size
+    // other than the requested one. A target that already matches is left alone, so
+    // the animation is not restarted. A pointer drag places the origin directly
+    // instead, because it has to follow the cursor.
+    if ((m_posX.animating() || m_posY.animating()) && !sizeGrabActive()) {
+      if (layoutTargetX() != x || layoutTargetY() != y) {
+        animateTo(x, y);
+      }
+      return;
+    }
+    setPosition(x, y);
   }
 
   void View::adoptFloatingClientSize() {
@@ -2179,6 +2259,13 @@ namespace umbriel {
     syncContentType(m_toplevel->base->surface);
     m_mapped = true;
     m_acceptClientMaximizeRequests = config().general.honorRestoredMaximize;
+    // Firefox often re-assert session maximize after map. With honor off, consume that one request so
+    // it cannot override alone/default opening policy; later maximize requests stay valid.
+    if (config().general.honorRestoredMaximize) {
+      m_consumeRestoredMaximizeRequest = false;
+    } else if (m_toplevel->requested.maximized) {
+      m_consumeRestoredMaximizeRequest = true;
+    }
     m_acceptClientMaximizeIdle =
         wl_event_loop_add_idle(wl_display_get_event_loop(m_server->display()), onAcceptClientMaximizeRequests, this);
     if (m_acceptClientMaximizeIdle == nullptr) {
@@ -2223,8 +2310,8 @@ namespace umbriel {
     showDecorations(!m_toplevel->scheduled.fullscreen);
 
     if (m_workspace != nullptr) {
-      m_workspace->layoutAttach(this, rule.defaultWidth, defaultSizeWidth(rule));
-    } else if (!attachToAvailableWorkspace(rule)) {
+      m_workspace->layoutAttach(this, rule.defaultWidth, defaultSizeWidth(rule), LayoutAttachOrigin::OpeningView);
+    } else if (!attachToAvailableWorkspace(rule, LayoutAttachOrigin::OpeningView)) {
       setOnActiveWorkspace(true);
     }
     bool assignedScratchpad = false;
@@ -2410,6 +2497,7 @@ namespace umbriel {
     m_floatingMaximized = false;
     m_maximizedToEdges = false;
     m_hasFullscreenRestoreBox = false;
+    m_restorePinnedAfterFullscreen = false;
     if (m_pinned) {
       m_pinned = false;
       m_restoreTiledAfterUnpin = false;
@@ -2455,6 +2543,7 @@ namespace umbriel {
     m_mapped = false;
     m_openingParentRequested = false;
     m_acceptClientMaximizeRequests = false;
+    m_consumeRestoredMaximizeRequest = false;
     if (m_acceptClientMaximizeIdle != nullptr) {
       wl_event_source_remove(m_acceptClientMaximizeIdle);
       m_acceptClientMaximizeIdle = nullptr;
@@ -2569,6 +2658,7 @@ namespace umbriel {
   }
 
   void View::handleCommit(bool reconfigureOpeningState) {
+    UMBRIEL_ZONE("View::handleCommit");
     if (m_captureScene != nullptr) {
       // Restrict the capture to the xdg window geometry. Client subsurfaces
       // remain visible, while buffer content outside the declared window is
@@ -2617,9 +2707,13 @@ namespace umbriel {
         const bool seedMaximized =
             (alone.defaultMaximize.value_or(false) && !openingParented() && !rule.defaultMaximize.value_or(false))
             || (alone.defaultMaximizeToEdges.value_or(false) && !rule.defaultMaximizeToEdges.value_or(false));
+        // A client's restored maximize flag only blocks alone ownership when we honor it. Otherwise alone seeds as
+        // usual and the restore is ignored (and consumed after map if the client re-asserts it).
+        const bool clientOwnsRestoredMaximize =
+            config().general.honorRestoredMaximize && m_toplevel->requested.maximized;
         if (seedFullscreen && !m_toplevel->requested.fullscreen) {
           m_aloneOpeningSeed = AloneSeed::Fullscreen;
-        } else if (seedMaximized && !m_toplevel->requested.fullscreen && !m_toplevel->requested.maximized) {
+        } else if (seedMaximized && !m_toplevel->requested.fullscreen && !clientOwnsRestoredMaximize) {
           m_aloneOpeningSeed = AloneSeed::Maximize;
         }
         rule.defaultFullscreen = alone.defaultFullscreen;
@@ -2794,6 +2888,11 @@ namespace umbriel {
     if (Output* output = currentOutput()) {
       output->updateHdr();
     }
+    // The first root commit after the opening gate settles the restore sequence.
+    // A later maximize request is client intent and must not be consumed.
+    if (m_mapped && m_acceptClientMaximizeRequests) {
+      m_consumeRestoredMaximizeRequest = false;
+    }
   }
 
   void View::handleDestroy() {
@@ -2941,12 +3040,39 @@ namespace umbriel {
         // configure. Reconfigure before they map a buffer so their first visible
         // content already matches the maximized layout target.
         handleCommit(true);
+      } else if (m_toplevel->requested.maximized) {
+        m_consumeRestoredMaximizeRequest = true;
       }
       return;
     }
     if (!m_acceptClientMaximizeRequests) {
+      // A mapped request before the opening gate is itself the restore re-assert.
+      // Consume it here so no later request inherits the suppression.
+      if (!config().general.honorRestoredMaximize && m_toplevel->requested.maximized) {
+        m_consumeRestoredMaximizeRequest = false;
+      }
       return;
     }
+    // Alone-owned maximize is compositor policy. Clients that closed unmaximized (Firefox) re-assert that after map
+    // and would otherwise undo the is_alone default_maximize flash.
+    if (m_aloneEffectsActive
+        && (m_aloneAction == AloneAction::Maximize || m_aloneAction == AloneAction::MaximizeToEdges)) {
+      m_consumeRestoredMaximizeRequest = false;
+      if (m_toplevel->requested.maximized != m_toplevel->scheduled.maximized) {
+        wlr_xdg_toplevel_set_maximized(m_toplevel, m_toplevel->scheduled.maximized);
+      }
+      return;
+    }
+    if (m_consumeRestoredMaximizeRequest && m_toplevel->requested.maximized) {
+      // Drop the opening restore re-assert without granting the client maximize ownership. If the compositor (alone
+      // rule, etc.) already maximized, stay there; otherwise re-ack the unmaximized configure.
+      m_consumeRestoredMaximizeRequest = false;
+      if (!m_toplevel->scheduled.maximized) {
+        wlr_xdg_toplevel_set_maximized(m_toplevel, false);
+      }
+      return;
+    }
+    m_consumeRestoredMaximizeRequest = false;
     if (m_tiled && m_workspace != nullptr) {
       if (maximizeRequestTargetsEdges(m_maximizedToEdges)) {
         setMaximizedToEdges(m_toplevel->requested.maximized);
@@ -3125,6 +3251,20 @@ namespace umbriel {
     raiseToTop();
   }
 
+  void View::applyPinnedState() {
+    m_pinned = true;
+    restorePinnedSceneParent();
+    if (m_workspace != nullptr) {
+      m_workspace->syncViewPresentation(this);
+      if (m_workspace->group() != nullptr && m_workspace->group()->output() != nullptr) {
+        wlr_output_schedule_frame(m_workspace->group()->output()->wlr());
+      }
+    }
+    if (Overview* overview = m_server->overview(); overview != nullptr && overview->active()) {
+      overview->onViewPinnedChanged(this);
+    }
+  }
+
   void View::togglePinned() { setPinned(!m_pinned, true); }
 
   void View::setPinned(bool pinned, bool focus) {
@@ -3143,17 +3283,7 @@ namespace umbriel {
       if (m_tiled) {
         setFloating(true, false);
       }
-      m_pinned = true;
-      restorePinnedSceneParent();
-      if (m_workspace != nullptr) {
-        m_workspace->syncViewPresentation(this);
-      }
-      if (m_workspace != nullptr && m_workspace->group() != nullptr && m_workspace->group()->output() != nullptr) {
-        wlr_output_schedule_frame(m_workspace->group()->output()->wlr());
-      }
-      if (Overview* overview = m_server->overview(); overview != nullptr && overview->active()) {
-        overview->onViewPinnedChanged(this);
-      }
+      applyPinnedState();
       if (focus) {
         m_server->focusView(this);
       }
@@ -3212,6 +3342,7 @@ namespace umbriel {
     if (unpinning) {
       m_pinned = false;
       m_restoreTiledAfterUnpin = false;
+      m_restorePinnedAfterFullscreen = false;
       if (m_workspace != nullptr) {
         wlr_scene_node_reparent(&m_sceneTree->node, m_workspace->viewLayer(false));
         reparentShadow(m_workspace->shadowLayer());
@@ -3300,6 +3431,7 @@ namespace umbriel {
 
     m_floating.clearSizeRequest();
     m_tiled = true;
+    m_restorePinnedAfterFullscreen = false;
     // Restore the fullscreen the float toggle dropped BEFORE the layout attach: arrange then sizes the column to the
     // full output instead of a regular column width, and the client sees no transient windowed configure. setFullscreen
     // also reparents and disables borders.
@@ -3370,7 +3502,7 @@ namespace umbriel {
     if (fullscreen) {
       if (unpinning) {
         m_pinned = false;
-        m_restoreTiledAfterUnpin = false;
+        m_restorePinnedAfterFullscreen = true;
         if (m_workspace != nullptr) {
           wlr_scene_node_reparent(&m_sceneTree->node, m_workspace->viewLayer(false));
           reparentShadow(m_workspace->shadowLayer());
@@ -3441,6 +3573,10 @@ namespace umbriel {
         placeInUsableArea();
       }
     }
+    if (!fullscreen && m_restorePinnedAfterFullscreen) {
+      m_restorePinnedAfterFullscreen = false;
+      applyPinnedState();
+    }
     updateForeignState();
     if (m_workspace != nullptr && m_workspace->group() != nullptr) {
       Output* output = m_workspace->group()->output();
@@ -3505,7 +3641,7 @@ namespace umbriel {
       if (target != nullptr && target != m_workspace) {
         setWorkspace(target, false);
         if (m_workspace == target) {
-          target->layoutAttach(this, rule.defaultWidth, defaultSizeWidth(rule));
+          target->layoutAttach(this, rule.defaultWidth, defaultSizeWidth(rule), LayoutAttachOrigin::OpeningView);
           if (m_tiled && m_toplevel->scheduled.maximized && !m_maximizedToEdges) {
             setMaximized(true);
           }
