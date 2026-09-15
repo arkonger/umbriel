@@ -2805,7 +2805,7 @@ namespace umbriel {
                 layout->getWidthFraction(target->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
           }
         } else if (rule.defaultScrollingWidth) {
-          m_savedScrollingWidthFrac = *rule.defaultScrollingWidth;
+          m_savedScrollingWidthFrac = rule.defaultScrollingWidth;
         }
       }
     }
@@ -3729,7 +3729,7 @@ namespace umbriel {
                 layout->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
           }
         } else if (rule.defaultScrollingWidth) {
-          m_savedScrollingWidthFrac = *rule.defaultScrollingWidth;
+          m_savedScrollingWidthFrac = rule.defaultScrollingWidth;
         }
       } else {
         // Save window rules in case of later floating
