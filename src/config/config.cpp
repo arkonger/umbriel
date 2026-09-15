@@ -2063,10 +2063,6 @@ namespace umbriel {
             .boolean("blur_optimized", rule.blurOptimized)
             .real("opacity", 0.0, 1.0, rule.opacity)
             .real("blur_ignore_alpha", 0.0, 1.0, rule.blurIgnoreAlpha);
-        // Always set pinned windows to floating
-        if (rule.defaultPinned && *rule.defaultPinned) {
-          rule.defaultFloating = true;
-        }
         if (const toml::node* vrrNode = keys.take("vrr")) {
           if (const auto value = readVrrMode(*vrrNode)) {
             rule.vrr = value;
