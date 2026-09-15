@@ -2676,7 +2676,8 @@ namespace umbriel {
     m_namedScrollingColumnName = rule.defaultScrollingColumn;
     m_namedScrollingColumnOrder = rule.defaultScrollingColumnOrder;
     if (rule.defaultFloating) {
-      if (rule.defaultPinned && *rule.defaultPinned) {
+      if (rule.defaultPinned && *rule.defaultPinned
+          && !(rule.defaultFloating && *rule.defaultFloating)) {
         m_tiled = false;
         m_restoreTiledAfterUnpin = true;
         m_restoreTiledAfterUnpinOverride = true;
