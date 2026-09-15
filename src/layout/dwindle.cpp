@@ -510,7 +510,8 @@ namespace umbriel {
   }
 
   Layout::InitialSize DwindleLayout::initialSize(
-      const wlr_box& usable, std::optional<double> /*ruleWidthFraction*/, const View* splitAnchor
+      const wlr_box& usable, bool /*wantMaximize*/, std::optional<double> /*ruleWidthFraction*/,
+      std::optional<int> /*ruleWidthPx*/, const View* splitAnchor
   ) const {
     const wlr_box content = contentArea(usable);
     // A window rule's default_width is a viewport fraction, which a splitting layout has no use for. The first leaf
