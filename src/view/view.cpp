@@ -2728,9 +2728,8 @@ namespace umbriel {
           );
         }
         const XdgSizeHints hints = xdgSizeHints(m_toplevel);
-        const int requestedWidth = initial.width;
         const int width =
-            (requestedWidth > 0 && !wantMaximizeToEdges) ? clampXdgWidth(requestedWidth, hints) : requestedWidth;
+            (initial.width > 0 && !wantMaximizeToEdges) ? clampXdgWidth(initial.width, hints) : initial.width;
         const int height =
             (initial.height > 0 && !wantMaximizeToEdges) ? clampXdgHeight(initial.height, hints) : initial.height;
         wlr_xdg_toplevel_set_size(m_toplevel, width, height);
