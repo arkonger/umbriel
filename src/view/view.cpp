@@ -2798,11 +2798,15 @@ namespace umbriel {
                 m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx
             );
           } else {
+            const wlr_box usable = openingUsableArea(targetOutput);
             const ResolvedLayoutConfig globalConfig = resolveGlobalLayout(config());
-            std::unique_ptr<Layout> layout = createLayout(globalConfig.mode);
+            const wlr_box tiledArea =
+                target != nullptr ? target->tiledArea() : applyLayoutStruts(usable, globalConfig.struts);
+            const int extentWidth = std::max(1, tiledArea.width - 2 * globalConfig.edgePad);
+
+            std::unique_ptr<Layout> layout = createLayout(LayoutMode::Scrolling);
             layout->setConfig(&globalConfig);
-            m_savedScrollingWidthFrac =
-                layout->getWidthFraction(target->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
+            m_savedScrollingWidthFrac = layout->getWidthFraction(extentWidth, *rule.defaultScrollingWidthPx);
           }
         } else if (rule.defaultScrollingWidth) {
           m_savedScrollingWidthFrac = rule.defaultScrollingWidth;
@@ -3723,7 +3727,7 @@ namespace umbriel {
                 scrolling->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
           } else {
             const ResolvedLayoutConfig globalConfig = resolveGlobalLayout(config());
-            std::unique_ptr<Layout> layout = createLayout(globalConfig.mode);
+            std::unique_ptr<Layout> layout = createLayout(LayoutMode::Scrolling);
             layout->setConfig(&globalConfig);
             m_savedScrollingWidthFrac =
                 layout->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
