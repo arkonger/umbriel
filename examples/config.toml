@@ -611,7 +611,7 @@ default_pinned = true
 # match.app_id = "^org[.]example[.]Wide$"
 # default_floating_size_px = [1200, 600]
 
-# Size a floating window as fractions of the usable area. 
+# Size a floating window as fractions of the usable area.
 
 # [[window_rule]]
 # match.app_id = "^org[.]example[.]Utility$"
@@ -665,7 +665,7 @@ default_pinned = true
 # 75% width when the window is alone, the default width when another window opens.
 # [[window_rule]]
 # match.is_alone = true
-# default_scolling_width = 0.75
+# default_scrolling_width = 0.75
 
 # ────────────────────────────── Layer Rules ─────────────────────────────────
 # Match layer-shell surfaces such as panels, launchers, notifications, and
