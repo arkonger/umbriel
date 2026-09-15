@@ -107,19 +107,19 @@ honored.
 |-----|------|--------|-------------|
 | `default_floating_size_px` | `[w,h]` | Floating | Initial size in pixels, clamped to the client's min/max hints. Floats use both, then own their size and honor client resizes. Takes precedence over `default_floating_size`. |
 | `default_floating_size` | `[w,h]` | Floating | Initial size as a fraction (0.1-1.0) of usable area. |
-| `default_scrolling_width_px` | int | Scrolling | Initial width in pixels. Overrides `layout.scrolling.default_width_fraction`, and takes precedence over `default_scrolling_width`. 
+| `default_scrolling_width_px` | int | Scrolling | Initial width in pixels. Overrides `layout.scrolling.default_width_fraction`, and takes precedence over `default_scrolling_width`. |
 | `default_scrolling_width` | float | Scrolling | Initial extent as a fraction (0.1-1.0) of scrolling-axis extent. |
 | `default_position` | table | Floating | Initial position in pixels, from the given anchor point: `{ x = int, y = int, anchor = string }`. |
 
 Window size and position rules apply when the window is first opened, like any other rule,
 except that a tiled window will save its default floating size and position for
-later, and likewise a floating window will save its default scrolling width. 
+later, and likewise a floating window will save its default scrolling width.
 When the window later becomes floating or scrolling for the first time, the rules will
-take effect as though it were a new window. 
+take effect as though it were a new window.
 Afterwards, it behaves like any other window, and will respect resizes as
 expected. A size given in pixels always takes precedence over one given as a
 fraction. In some cases, pixels may be internally converted to fractions for
-better consistency across outputs. 
+better consistency across outputs.
 
 ```toml
 [[window_rule]]
@@ -135,7 +135,7 @@ takes the fraction too. Match on `title` or `xdg_tag` to keep a rule off them.
 
 Scrolling extents are gap-aware, so lanes whose fractions sum to `1` exactly
 fill the viewport. A vertical strip applies the fraction to lane height. Existing
-named columns keep their established width. 
+named columns keep their established width.
 
 If no default scrolling width rule nor a matching
 `layout.scrolling.default_width_fraction` is set, a scrolling window chooses
