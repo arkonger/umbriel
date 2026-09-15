@@ -49,7 +49,7 @@ workspace_axis = "horizontal"
 [[window_rule]]
 match.title = "^slide-overhang$"
 default_floating = true
-default_size = [1200, 400]
+default_floating_size_px = [1200, 400]
 default_position = { x = 1000, y = 100, anchor = "top_left" }
 EOF
 "$UMBRIEL" msg config-reload > /dev/null

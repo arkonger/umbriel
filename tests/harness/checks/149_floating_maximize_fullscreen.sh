@@ -22,8 +22,7 @@ enabled = false
 [[window_rule]]
 match.title = "^float-fs-maximize$"
 default_floating = true
-default_width = 0.5
-default_height = 0.5
+default_floating_size = [0.5, 0.5]
 EOF
 "$UMBRIEL" msg config-reload > /dev/null
 

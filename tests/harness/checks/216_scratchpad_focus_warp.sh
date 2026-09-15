@@ -23,7 +23,7 @@ name = "focus-target"
 [[window_rule]]
 match.title = "^scratchpad-focus-warp$"
 default_floating = true
-default_size = [420, 260]
+default_floating_size_px = [420, 260]
 EOF
 "$UMBRIEL" msg config-reload > /dev/null
 

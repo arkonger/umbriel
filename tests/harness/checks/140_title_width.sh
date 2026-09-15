@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A title change after map must not reapply an unchanged default_width rule.
+# A title change after map must not reapply an unchanged default_scrolling_width rule.
 set -euo pipefail
 
 readonly TITLE_FIFO="$UMBRIEL_RUNTIME_DIR/title-width.fifo"
@@ -21,7 +21,7 @@ cat >> "$UMBRIEL_CONFIG" <<'EOF'
 
 [[window_rule]]
 match.app_id = "^helium$"
-default_width = 0.75
+default_scrolling_width = 0.75
 
 [[window_rule]]
 match.title = "^unrelated-title-rule$"
@@ -42,7 +42,7 @@ for _ in $(seq 60); do
 done
 initial_width=$(window_width)
 if [[ $initial_width != 942 ]]; then
-  echo "default_width did not produce the expected initial width: $("$UMBRIEL" windows --json)"
+  echo "default_scrolling_width did not produce the expected initial width: $("$UMBRIEL" windows --json)"
   exit 1
 fi
 
