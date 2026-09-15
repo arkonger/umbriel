@@ -3719,21 +3719,6 @@ namespace umbriel {
         }
         placeInUsableArea();
 
-        // Save default scrolling width for later
-        if (rule.defaultScrollingWidthPx) {
-          if (scrolling) {
-            m_savedScrollingWidthFrac =
-                scrolling->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
-          } else {
-            const ResolvedLayoutConfig globalConfig = resolveGlobalLayout(config());
-            std::unique_ptr<Layout> layout = createLayout(LayoutMode::Scrolling);
-            layout->setConfig(&globalConfig);
-            m_savedScrollingWidthFrac =
-                layout->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
-          }
-        } else if (rule.defaultScrollingWidth) {
-          m_savedScrollingWidthFrac = rule.defaultScrollingWidth;
-        }
       } else {
         // Save window rules in case of later floating
 
@@ -3757,6 +3742,23 @@ namespace umbriel {
             m_floating.rememberSize(clampXdgWidth(width, hints), clampXdgHeight(height, hints));
           }
         }
+      }
+    }
+    if (!m_tiled) {
+      // Save default scrolling width for later
+      if (rule.defaultScrollingWidthPx) {
+        if (scrolling) {
+          m_savedScrollingWidthFrac =
+              scrolling->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
+        } else {
+          const ResolvedLayoutConfig globalConfig = resolveGlobalLayout(config());
+          std::unique_ptr<Layout> layout = createLayout(LayoutMode::Scrolling);
+          layout->setConfig(&globalConfig);
+          m_savedScrollingWidthFrac =
+              layout->getWidthFraction(m_workspace->scrollViewportExtent(), *rule.defaultScrollingWidthPx);
+        }
+      } else if (rule.defaultScrollingWidth) {
+        m_savedScrollingWidthFrac = rule.defaultScrollingWidth;
       }
     }
 
