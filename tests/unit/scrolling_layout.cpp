@@ -686,7 +686,7 @@ UMBRIEL_TEST(initialSizeMatchesWhatArrangeWillAssign) {
   CHECK_EQ(initial.height, arranged.height);
 }
 
-UMBRIEL_TEST(initialSizeHonoursARuleWidthFraction) {
+UMBRIEL_TEST(initialSizeHonoursARuleExtentFraction) {
   Fixture fixture;
   const Layout::InitialSize initial = fixture.layout.initialSize(kUsable, false, 1.0 / 3, std::nullopt, nullptr);
 
@@ -718,6 +718,20 @@ UMBRIEL_TEST(initialSizeLeavesTheScrollAxisUnconstrainedWhenNoDefaultIsSet) {
       vertical.layout.initialSize(kUsable, false, std::nullopt, std::nullopt, nullptr);
   CHECK_EQ(verticalSize.width, 1260);
   CHECK_EQ(verticalSize.height, 0);
+}
+
+UMBRIEL_TEST(initialSizeHonoursAPixelExtentWithoutAFractionDefault) {
+  Fixture horizontal;
+  horizontal.config.scrolling.defaultWidthFraction.reset();
+  const Layout::InitialSize horizontalSize = horizontal.layout.initialSize(kUsable, false, std::nullopt, 800, nullptr);
+  CHECK_EQ(horizontalSize.width, 800);
+  CHECK_EQ(horizontalSize.height, 700);
+
+  Fixture vertical(ScrollingDirection::Vertical);
+  vertical.config.scrolling.defaultWidthFraction.reset();
+  const Layout::InitialSize verticalSize = vertical.layout.initialSize(kUsable, false, std::nullopt, 300, nullptr);
+  CHECK_EQ(verticalSize.width, 1260);
+  CHECK_EQ(verticalSize.height, 300);
 }
 
 UMBRIEL_TEST(mappedClientWidthCanBecomeTheColumnWidth) {

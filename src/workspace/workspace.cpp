@@ -315,7 +315,7 @@ namespace umbriel {
   }
 
   void Workspace::layoutAttach(
-      View* view, std::optional<double> initialWidth, std::optional<int> initialPixelWidth, LayoutAttachOrigin origin
+      View* view, std::optional<double> initialExtent, std::optional<int> initialExtentPx, LayoutAttachOrigin origin
   ) {
     if (view == nullptr || !view->mapped() || !view->tiled() || m_layout->columnOf(view) >= 0) {
       return;
@@ -335,7 +335,7 @@ namespace umbriel {
     const std::optional<NamedScrollingColumnPlacement> placement = scrolling != nullptr && name
         ? namedScrollingColumnPlacement(*scrolling, view, *name, view->namedScrollingColumnOrder())
         : std::nullopt;
-    view->m_ownsNamedScrollingColumnWidth = scrolling != nullptr && name.has_value() && !placement;
+    view->m_ownsNamedScrollingColumnExtent = scrolling != nullptr && name.has_value() && !placement;
     if (placement) {
       scrolling->insertViewIntoColumn(view, static_cast<int>(placement->column), placement->row);
     } else {
@@ -344,13 +344,10 @@ namespace umbriel {
 
     if (scrolling != nullptr && !placement) {
       const int column = scrolling->columnOf(view);
-      if (initialPixelWidth && !scrollingVertical()) {
-        // default_size is expressed in physical axes, so its width only seeds
-        // the primary extent of a horizontal scrolling column.
-        scrolling->setWidthFromPixels(column, scrollViewportExtent(), *initialPixelWidth);
-      } else if (initialWidth) {
-        // default_width is a viewport fraction: scrolling only. Dwindle ignores it.
-        scrolling->setWidthFraction(column, *initialWidth);
+      if (initialExtentPx) {
+        scrolling->setWidthFromPixels(column, scrollViewportExtent(), *initialExtentPx);
+      } else if (initialExtent) {
+        scrolling->setWidthFraction(column, *initialExtent);
       } else if (m_layoutConfig.scrolling.defaultWidthFraction) {
         scrolling->setWidthFraction(column, *m_layoutConfig.scrolling.defaultWidthFraction);
       } else {
@@ -423,7 +420,7 @@ namespace umbriel {
   }
 
   void Workspace::applyNamedScrollingColumnRule(
-      View* view, std::optional<double> initialWidth, std::optional<int> initialWidthPx,
+      View* view, std::optional<double> initialExtent, std::optional<int> initialExtentPx,
       NamedScrollingColumnChange change
   ) {
     ScrollingLayout* scrolling = scrollingLayout();
@@ -448,7 +445,7 @@ namespace umbriel {
         namedScrollingColumnPlacement(*scrolling, view, name, view->namedScrollingColumnOrder());
     switch (change) {
     case NamedScrollingColumnChange::Name:
-      view->m_ownsNamedScrollingColumnWidth = !placement;
+      view->m_ownsNamedScrollingColumnExtent = !placement;
       break;
     case NamedScrollingColumnChange::Order:
       if (placement && static_cast<int>(placement->column) != scrolling->columnOf(view)) {
@@ -469,10 +466,10 @@ namespace umbriel {
       // a new one. Start that group in its own adjacent column.
       detachFromLayout(view);
       scrolling->insertView(view, previousColumn + 1);
-      if (initialWidthPx) {
-        scrolling->setWidthFromPixels(scrolling->columnOf(view), scrollViewportExtent(), *initialWidthPx);
-      } else if (initialWidth) {
-        scrolling->setWidthFraction(scrolling->columnOf(view), *initialWidth);
+      if (initialExtentPx) {
+        scrolling->setWidthFromPixels(scrolling->columnOf(view), scrollViewportExtent(), *initialExtentPx);
+      } else if (initialExtent) {
+        scrolling->setWidthFraction(scrolling->columnOf(view), *initialExtent);
       }
       restoreMaximizedColumn();
       clampScrollToRange();

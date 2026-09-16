@@ -309,11 +309,13 @@ namespace umbriel {
     std::optional<bool> matchAtStartup;
     std::optional<std::string> defaultOutput;
     std::optional<bool> defaultFloating;
-    std::optional<std::array<int, 2>> defaultFloatingSizePx;  // [width, height] in pixels
-    std::optional<std::array<double, 2>> defaultFloatingSize; // [width, height] as fraction
+    std::optional<int> defaultFloatingWidthPx;
+    std::optional<int> defaultFloatingHeightPx;
+    std::optional<double> defaultFloatingWidth;
+    std::optional<double> defaultFloatingHeight;
     std::optional<WindowPosition> defaultPosition;
-    std::optional<int> defaultScrollingWidthPx;  // column width pixel override
-    std::optional<double> defaultScrollingWidth; // column width fraction override
+    std::optional<int> defaultScrollingExtentPx;
+    std::optional<double> defaultScrollingExtent;
     std::optional<WorkspaceReference> defaultWorkspace;
     std::optional<std::string> defaultScratchpad;
     std::optional<std::string> defaultScrollingColumn;
@@ -350,11 +352,13 @@ namespace umbriel {
           && matchAtStartup == other.matchAtStartup
           && defaultOutput == other.defaultOutput
           && defaultFloating == other.defaultFloating
-          && defaultFloatingSizePx == other.defaultFloatingSizePx
-          && defaultFloatingSize == other.defaultFloatingSize
+          && defaultFloatingWidthPx == other.defaultFloatingWidthPx
+          && defaultFloatingHeightPx == other.defaultFloatingHeightPx
+          && defaultFloatingWidth == other.defaultFloatingWidth
+          && defaultFloatingHeight == other.defaultFloatingHeight
           && defaultPosition == other.defaultPosition
-          && defaultScrollingWidthPx == other.defaultScrollingWidthPx
-          && defaultScrollingWidth == other.defaultScrollingWidth
+          && defaultScrollingExtentPx == other.defaultScrollingExtentPx
+          && defaultScrollingExtent == other.defaultScrollingExtent
           && defaultWorkspace == other.defaultWorkspace
           && defaultScratchpad == other.defaultScratchpad
           && defaultScrollingColumn == other.defaultScrollingColumn
@@ -380,11 +384,13 @@ namespace umbriel {
   struct ResolvedWindowRule {
     std::optional<std::string> defaultOutput;
     std::optional<bool> defaultFloating;
-    std::optional<std::array<int, 2>> defaultFloatingSizePx;
-    std::optional<std::array<double, 2>> defaultFloatingSize;
+    std::optional<int> defaultFloatingWidthPx;
+    std::optional<int> defaultFloatingHeightPx;
+    std::optional<double> defaultFloatingWidth;
+    std::optional<double> defaultFloatingHeight;
     std::optional<WindowPosition> defaultPosition;
-    std::optional<int> defaultScrollingWidthPx;
-    std::optional<double> defaultScrollingWidth;
+    std::optional<int> defaultScrollingExtentPx;
+    std::optional<double> defaultScrollingExtent;
     std::optional<WorkspaceReference> defaultWorkspace;
     std::optional<std::string> defaultScratchpad;
     std::optional<std::string> defaultScrollingColumn;

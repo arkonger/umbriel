@@ -18,7 +18,7 @@ enabled = false
 [[window_rule]]
 match.title = "^float-maximize$"
 default_floating = true
-default_floating_size = [0.5, 0.5]
+default_floating_size = { width = 0.5, height = 0.5 }
 EOF
 "$UMBRIEL" msg config-reload > /dev/null
 

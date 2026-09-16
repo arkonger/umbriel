@@ -604,9 +604,8 @@ UMBRIEL_TEST(initialSizeSplitsTheHeightOnAPortraitArea) {
   CHECK(initial.height < initial.width);
 }
 
-UMBRIEL_TEST(initialSizeIgnoresARuleWidthFraction) {
-  // default_width is a viewport fraction, which means nothing to a splitting
-  // layout; it must not change the answer.
+UMBRIEL_TEST(initialSizeIgnoresARuleExtentFraction) {
+  // A scrolling extent means nothing to a splitting layout, so it must not change the answer.
   Fixture fixture;
   fixture.addLeaves(1);
   CHECK_EQ(

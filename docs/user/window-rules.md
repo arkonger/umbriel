@@ -105,27 +105,26 @@ honored.
 
 | Key | Type | Layout | Description |
 |-----|------|--------|-------------|
-| `default_floating_size_px` | `[w,h]` | Floating | Initial size in pixels, clamped to the client's min/max hints. Floats use both, then own their size and honor client resizes. Takes precedence over `default_floating_size`. |
-| `default_floating_size` | `[w,h]` | Floating | Initial size as a fraction (0.1-1.0) of usable area. |
-| `default_scrolling_width_px` | int | Scrolling | Initial width in pixels. Overrides `layout.scrolling.default_width_fraction`, and takes precedence over `default_scrolling_width`. |
-| `default_scrolling_width` | float | Scrolling | Initial extent as a fraction (0.1-1.0) of scrolling-axis extent. |
+| `default_floating_size_px` | table | Floating | Initial logical-pixel size as `{ width = int, height = int }`. Each axis is optional and clamped to the client's min/max hints. A configured pixel axis takes precedence over the same axis in `default_floating_size`. |
+| `default_floating_size` | table | Floating | Initial fractional size as `{ width = float, height = float }`. Each optional axis is a fraction (0.1-1.0) of the corresponding usable-area axis. |
+| `default_scrolling_extent_px` | int | Scrolling | Initial extent in logical pixels along the scrolling axis. Overrides `layout.scrolling.default_width_fraction`, and takes precedence over `default_scrolling_extent`. |
+| `default_scrolling_extent` | float | Scrolling | Initial extent as a fraction (0.1-1.0) of scrolling-axis extent. |
 | `default_position` | table | Floating | Initial position in pixels, from the given anchor point: `{ x = int, y = int, anchor = string }`. |
 
-Window size and position rules apply when the window is first opened, like any other rule,
-except that a tiled window will save its default floating size and position for
-later, and likewise a floating window will save its default scrolling width.
-When the window later becomes floating or scrolling for the first time, the rules will
-take effect as though it were a new window.
-Afterwards, it behaves like any other window, and will respect resizes as
-expected. A size given in pixels always takes precedence over one given as a
-fraction. In some cases, pixels may be internally converted to fractions for
-better consistency across outputs.
+Window size and position rules apply when the window first opens, like any other
+rule. Each floating axis is optional. A tiled window saves configured floating
+axes and position until it first floats, while a floating window saves its
+scrolling extent until it first tiles. Fractions are evaluated against the
+output usable area at that transition. Afterwards, the window owns its size and
+honors client and user resizes. Within one rule, a pixel value takes precedence
+over a fraction for the same axis or extent. Across matching rules, a later rule
+that sets either unit replaces the unit selected by earlier rules.
 
 ```toml
 [[window_rule]]
 match.app_id = "^org[.]example[.]Utility$"
 default_floating = true
-default_floating_size = [0.5, 0.6]
+default_floating_size = { width = 0.5, height = 0.6 }
 ```
 
 Floating rules reach every floating window the rule matches, not only windows the
@@ -135,9 +134,9 @@ takes the fraction too. Match on `title` or `xdg_tag` to keep a rule off them.
 
 Scrolling extents are gap-aware, so lanes whose fractions sum to `1` exactly
 fill the viewport. A vertical strip applies the fraction to lane height. Existing
-named columns keep their established width.
+named columns keep their established extent.
 
-If no default scrolling width rule nor a matching
+If no default scrolling extent rule nor a matching
 `layout.scrolling.default_width_fraction` is set, a scrolling window chooses
 its initial logical extent.
 
@@ -159,7 +158,7 @@ bottom-left corner:
 [[window_rule]]
 match.app_id = "^org[.]example[.]Utility$"
 default_floating = true
-default_floating_size_px = [800, 600]
+default_floating_size_px = { width = 800, height = 600 }
 default_position = { x = 32, y = 24, anchor = "bottom_left" }
 ```
 
@@ -203,8 +202,8 @@ saved restore destination. `default_floating` selects whether restoring it
 returns it tiled or floating.
 
 Without a scratchpad geometry override, `default_floating_size_px` and
-`default_floating_size` set the window's initial scratchpad
-geometry using the assigned output's usable area.
+`default_floating_size` set the initial scratchpad geometry using the assigned
+output's usable area.
 
 Scratchpad presentation takes precedence over `default_pinned`,
 `default_fullscreen`, `default_maximize`, and `default_maximize_to_edges`.
@@ -307,11 +306,11 @@ its normal rules give it.
 | `default_fullscreen` | The window takes the whole output. |
 | `default_maximize_to_edges` | The window fills the usable area. |
 | `default_maximize` | The window is maximized, unless it has a parent. |
-| `default_scrolling_width_px` | Applies to the window's scrolling lane; the layout must be scrolling. |
-| `default_scrolling_width` | Applies to the window's scrolling lane; the layout must be scrolling. |
+| `default_scrolling_extent_px` | Applies to the window's scrolling lane; the layout must be scrolling. |
+| `default_scrolling_extent` | Applies to the window's scrolling lane; the layout must be scrolling. |
 
 Only one of these is applied at a time, in the same precedence as at map time:
-fullscreen, then maximized to edges, then maximized, then width. If the window
+fullscreen, then maximized to edges, then maximized, then extent. If the window
 is already in the target state, the rule does not take over what the user or a
 previous rule already chose.
 
@@ -319,8 +318,8 @@ A window that opens as the only tiled window on its workspace is configured
 with these settings right away, in the same configure that carries its first
 size, so its first frame is already the one the rule asks for. The rule still
 owns that state: the window gives it up when a second window arrives. When the
-window's normal rules set no default width, the width it returns to is
-`layout.scrolling.default_width_fraction`, because the alone width, not the
+window's normal rules set no default extent, the extent it returns to is
+`layout.scrolling.default_width_fraction`, because the alone extent, not the
 client's own preference, sized the window as it opened.
 
 The rule is compatible with other matches.
@@ -341,13 +340,13 @@ widen on its own and shrink beside a companion:
 [[window_rule]]
 match.is_alone = true
 match.app_id = "^org\\.gnome\\.Nautilus$"
-default_scrolling_width = 0.8
+default_scrolling_extent = 0.8
 
 # Slim when another window opens next to it
 [[window_rule]]
 match.is_alone = false
 match.app_id = "^org\\.gnome\\.Nautilus$"
-default_scrolling_width = 0.4
+default_scrolling_extent = 0.4
 ```
 
 The dynamic settings from the previous section can be combined with
@@ -366,12 +365,12 @@ blur_optimized = true
 # floating window these applications open, including their dialogs.
 [[window_rule]]
 match.app_id = "^(Alacritty|kitty|org\\.gnome\\.Nautilus)$"
-default_scrolling_width = 0.33
+default_scrolling_extent = 0.33
 
 # Wide columns for browsers
 [[window_rule]]
 match.app_id = "^(helium|chromium)$"
-default_scrolling_width = 0.75
+default_scrolling_extent = 0.75
 
 # Always use VRR for game content, even when the output policy disables it
 [[window_rule]]
@@ -429,21 +428,21 @@ default_pinned = true
 [[window_rule]]
 match.app_id = "^dev.noctalia.Noctalia$"
 default_floating = true
-default_floating_size_px = [1020, 900]
+default_floating_size_px = { width = 1020, height = 900 }
 blur_popups = false
 
 # Noctalia share picker
 [[window_rule]]
 match.app_id = "^dev.noctalia.UmbrielSharePicker$"
 default_floating = true
-default_floating_size_px = [800, 600]
+default_floating_size_px = { width = 800, height = 600 }
 default_position = { x = 32, y = 32, anchor = "bottom_right" }
 
 # Swash
 [[window_rule]]
 match.app_id = "^dev.lemmy.swash$"
 default_floating = true
-default_floating_size_px = [1000, 900]
+default_floating_size_px = { width = 1000, height = 900 }
 
 # Dim unfocused windows
 [[window_rule]]

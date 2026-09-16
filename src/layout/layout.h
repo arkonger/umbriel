@@ -222,13 +222,12 @@ namespace umbriel {
     };
 
     // Size for the very first configure, before the view has joined the layout. It must agree with what arrange() will
-    // later assign, or the client's first buffer is the wrong size and the window visibly resizes on its first paint
-    // (Electron and friends keep that buffer until they redraw). `ruleWidthFraction` is a window rule's default_width,
-    // which is a viewport fraction and so means nothing to a splitting layout.
+    // later assign, or the client's first buffer is the wrong size and the window visibly resizes on its first paint.
+    // Scrolling extents mean nothing to splitting layouts.
     // `splitAnchor` is the view whose leaf a subsequent focused insert would split; nullptr means append.
     [[nodiscard]] virtual InitialSize initialSize(
-        const wlr_box& usable, bool wantMaximized, std::optional<double> ruleWidthFraction,
-        std::optional<int> ruleWidthPx, const View* splitAnchor
+        const wlr_box& usable, bool wantMaximized, std::optional<double> ruleExtent, std::optional<int> ruleExtentPx,
+        const View* splitAnchor
     ) const = 0;
 
     [[nodiscard]] virtual std::optional<View*> focusHorizontalLeaf(const View* /*view*/, int /*direction*/) const {
@@ -284,8 +283,6 @@ namespace umbriel {
 
     // Anything only one layout can answer lives on that layout. Reach it through the single downcast seam,
     // Workspace::scrollingLayout(), rather than by asking every layout a question most of them have no answer to.
-
-    double getWidthFraction(int viewportPrimary, int width) const;
 
   protected:
     // The usable area minus edge padding on both axes: the box the layout has
