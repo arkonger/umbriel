@@ -258,12 +258,7 @@ namespace umbriel {
     [[nodiscard]] bool hasActiveAnimations() const override;
     [[nodiscard]] bool animatesOn(const Output* output) const override;
 
-    std::optional<double> getSavedScrollingWidthFrac() {
-      if (!m_savedScrollingWidthFrac) {
-        return std::nullopt;
-      }
-      return m_savedScrollingWidthFrac;
-    }
+    std::optional<double> getSavedScrollingWidthFrac() { return m_savedScrollingWidthFrac; }
     void setSavedScrollingWidthFrac(double width) { m_savedScrollingWidthFrac = width; }
 
   private:
