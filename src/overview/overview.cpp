@@ -44,6 +44,9 @@ namespace umbriel {
 
     // Gap between workspace thumbnails, as a fraction of the scaled row height.
     constexpr double kRowGapFraction = 0.1;
+    // Once all remaining spring energy fits inside this many layout pixels, showing the tail only creates isolated
+    // rounded pixel steps. Snap it while preserving larger release motion and configured bounce.
+    constexpr double kRowSpringSettlePixels = 3.0;
     // Pointer travel that promotes a press on a card into a relocate drag.
     constexpr double kDragThreshold = 10.0;
     // How much of the focused border color mixes into the unfocused one for a landing target that is not the live one.
@@ -1384,6 +1387,7 @@ namespace umbriel {
     if (m_outputs.empty()) {
       return false;
     }
+    m_server->cursor()->resetWheelAccumulation();
 
     if (ScratchpadManager* scratchpad = m_server->scratchpadManager()) {
       scratchpad->hideAll();
@@ -1484,6 +1488,7 @@ namespace umbriel {
     if (!m_active || m_closing) {
       return;
     }
+    m_server->cursor()->resetWheelAccumulation();
     cancelNavigation();
     if (m_dragCard != nullptr) {
       endDrag(false);
@@ -1566,7 +1571,22 @@ namespace umbriel {
     }
     bool rowTicked = false;
     for (const auto& state : m_outputs) {
-      rowTicked = state->rowScroll.tick(nowMsec) || rowTicked;
+      const bool ticked = state->rowScroll.tick(nowMsec);
+      if (ticked && state->rowScroll.animating() && state->rowScroll.curve().easing == Easing::Spring) {
+        PreviewMetrics metrics;
+        if (previewMetrics(*state, *m_server, zoom(), metrics)) {
+          const double step =
+              (metrics.axis == WorkspaceAxis::Horizontal ? metrics.previewW : metrics.previewH) + metrics.gap;
+          const double remaining = springDisplacementBound(
+              state->rowScroll.current(), state->rowScroll.target(), state->rowScroll.velocity(),
+              state->rowScroll.curve().spring
+          );
+          if (remaining * step <= kRowSpringSettlePixels) {
+            state->rowScroll.snap(state->rowScroll.target());
+          }
+        }
+      }
+      rowTicked = ticked || rowTicked;
       active = active || state->rowScroll.animating();
     }
     if (zoomTicked || rowTicked || m_cardPresentationDirty) {
@@ -1616,6 +1636,7 @@ namespace umbriel {
   }
 
   void Overview::teardown() {
+    m_server->cursor()->resetWheelAccumulation();
     cancelNavigation();
     clearMiddlePress();
     hideDropHint();
@@ -2377,12 +2398,29 @@ namespace umbriel {
     Output* output = m_server->outputFromWlr(wlr_output_layout_output_at(m_server->outputLayout(), lx, ly));
     const WorkspaceGroup* group = output != nullptr ? output->workspaceGroup() : nullptr;
     const bool horizontalWorkspaces = group != nullptr && group->workspaceAxis() == WorkspaceAxis::Horizontal;
-    // The vertical wheel navigates either arrangement; a horizontal wheel only
-    // matches horizontally arranged workspaces.
-    if (!vertical && !horizontalWorkspaces) {
+    const int sign = direction < 0 ? -1 : 1;
+    // Wheel input commits discrete targets on its physical axis, unlike continuous touchpad navigation.
+    if (vertical != horizontalWorkspaces) {
+      selectRelativeWorkspace(sign, output);
       return true;
     }
-    selectRelativeWorkspace(direction < 0 ? -1 : 1, output);
+    Workspace* workspace = workspaceAtPoint(lx, ly, nullptr, nullptr, true);
+    ScrollingLayout* scrolling = workspace != nullptr ? workspace->scrollingLayout() : nullptr;
+    if (scrolling == nullptr) {
+      return true;
+    }
+    View* target = vertical ? workspace->focusVertical(sign) : workspace->focusAdjacent(sign);
+    if (target == nullptr) {
+      return true;
+    }
+    clearShortcutInput();
+    if (workspace->active()) {
+      m_server->focusView(target, FocusReason::Gesture);
+    } else {
+      workspace->setFocusedView(target);
+    }
+    scrolling->snapVisible(scrolling->columnOf(target), workspace->scrollViewportExtent());
+    workspace->markArrange(true);
     return true;
   }
 

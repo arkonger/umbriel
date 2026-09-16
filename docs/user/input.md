@@ -147,6 +147,7 @@ natural_scroll = true
 # accel_profile = "adaptive"  # "flat", "adaptive", or a custom curve
 # sensitivity = 0.5           # -1.0 to 1.0
 # scroll_factor = 1.5         # touchpad scroll speed, 0.1 to 10.0
+# scroll_factor = { horizontal = 2.0, vertical = 1.5 }  # or per axis instead of the line above
 # disable_while_typing = true
 # disable_on_external_mouse = true
 # click_method = "clickfinger"  # "button_areas" or "clickfinger"
@@ -191,6 +192,13 @@ overview wheel stepping, and three-finger-swipe strip travel keep their own
 counting semantics. Inside the overview, both two- and three-finger navigation
 use [`overview.scroll_factor_horizontal` and
 `overview.scroll_factor_vertical`](workspaces-overview.md) instead.
+
+`scroll_factor` also accepts a table to split the multiplier by direction:
+`scroll_factor = { horizontal = 2.0, vertical = 1.5 }`. A missing axis is
+left at `1.0`; the scalar and table forms are alternatives, not combined. It
+follows the same rules as the single-number form: only the continuous delta is
+scaled, and a change takes the next scroll event on reload. Every scroll event
+carries one direction, so diagonal scrolling is scaled per direction.
 
 Set `disable_on_external_mouse = true` to disable the touchpad while an
 external mouse is connected. Libinput re-enables it automatically once the
@@ -373,10 +381,10 @@ or column move to another workspace or output, and a foreign-toplevel
 activation request from a dock or taskbar. This applies whether the matching
 action comes from a keybind, wheel bind, or IPC. Pointer-driven focus, automatic
 focus after a window closes, gestures, and overview selection do not warp the
-cursor. `window-focus:<id>` remains focus-only; use
-`window-focus-warp:<id>` when an individual id-based request must always move
-the cursor. Either action summons a target that is hidden in a scratchpad to
-the output under the pointer before focusing it.
+cursor. `window-focus:<id>` follows this setting, while
+`window-focus-warp:<id>` always moves the cursor regardless of the setting.
+Either action summons a target that is hidden in a scratchpad to the output
+under the pointer before focusing it.
 
 ### Focus
 
@@ -394,15 +402,18 @@ follows_mouse_max_scroll = 0.5  # optional, measured in viewport widths
 Mapping windows and switching workspaces can change which window is under a
 stationary pointer. The existing focus remains until the next pointer motion,
 which selects the window under the pointer without requiring a border crossing.
+Layout scrolling, resizing, column movement, and fullscreen exit behave the same
+way when they move or reveal another window beneath the pointer.
 Finishing a client data drag performs the same refresh at the unchanged cursor
 position, so dropping over another window selects it immediately.
 
 Closing a focused Dwindle or master tile is handled immediately when the pointer
 belongs to that tile. After the layout reflows, focus follows the survivor that
-takes over the same pointer position. If the pointer rests over a different
-window, the layout's normal close replacement keeps focus. Scrolling workspaces
-also keep their normal close replacement because the strip can animate several
-windows beneath a stationary pointer.
+takes over the same pointer position, including through consecutive closes
+without pointer motion. If the pointer rests over a different window, the
+layout's normal close replacement keeps focus. Scrolling workspaces also keep
+their normal close replacement because the strip can animate several windows
+beneath a stationary pointer.
 
 For example, a window three screens away requires a limit of at least `3.0`.
 Values outside `0.0` to `100.0` are clamped and reported.
