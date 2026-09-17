@@ -3101,7 +3101,7 @@ namespace umbriel {
           && scratchpadManager->hasScratchpad(*rule.defaultScratchpad);
       const auto& scratchpadConfig = config().animation.scratchpad;
       const bool wantTiled = !openingInScratchpad
-          && (!rule.defaultPinned && !*rule.defaultPinned)
+          && !rule.defaultPinned.value_or(false)
           && (rule.defaultFloating ? !*rule.defaultFloating : looksTiled(m_toplevel, openingParented()));
 
       // Resolve the workspace this view will attach to, so the output and layout that will actually arrange it are the
