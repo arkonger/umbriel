@@ -79,7 +79,7 @@ namespace umbriel {
     [[nodiscard]] bool pinned() const { return m_pinned; }
     // True when unpinning puts the window back in the tiled layout, because
     // that is where it was pinned from.
-    [[nodiscard]] bool restoresTiledOnUnpin() const { return m_restoreTiledAfterUnpin; }
+    [[nodiscard]] bool restoresTiledOnUnpin() const { return m_restoreTiledAfterUnpin.value_or(false); }
     [[nodiscard]] bool maximizedToEdges() const { return m_maximizedToEdges; }
     // Fullscreen for layout purposes follows the state already scheduled for the next configure.
     [[nodiscard]] bool layoutFullscreen() const;
@@ -607,7 +607,7 @@ namespace umbriel {
     wlr_box m_fullscreenRestoreBox{};
     bool m_hasFullscreenRestoreBox = false;
     bool m_pinned = false;
-    bool m_restoreTiledAfterUnpin = false;
+    std::optional<bool> m_restoreTiledAfterUnpin;
     bool m_restorePinnedAfterFullscreen = false;
     // Set when a float toggle drops fullscreen: re-tiling restores fullscreen BEFORE the layout attach, so the client
     // never receives a transient column-sized configure (game engines latch it for input mapping and go dead outside

@@ -2676,11 +2676,9 @@ namespace umbriel {
     m_namedScrollingColumnName = rule.defaultScrollingColumn;
     m_namedScrollingColumnOrder = rule.defaultScrollingColumnOrder;
     if (rule.defaultFloating) {
-      if (rule.defaultPinned && *rule.defaultPinned
-          && !(rule.defaultFloating && *rule.defaultFloating)) {
+      if (rule.defaultPinned.value_or(false) && !(rule.defaultScratchpad || rule.defaultFullscreen.value_or(false))) {
         m_tiled = false;
-        m_restoreTiledAfterUnpin = true;
-        m_restoreTiledAfterUnpinOverride = true;
+        m_restoreTiledAfterUnpin = !*rule.defaultFloating;
       } else {
         m_tiled = !*rule.defaultFloating;
       }
@@ -3710,10 +3708,8 @@ namespace umbriel {
       return;
     }
     if (pinned) {
-      if (!m_restoreTiledAfterUnpinOverride) {
+      if (!m_restoreTiledAfterUnpin) {
         m_restoreTiledAfterUnpin = m_tiled;
-      } else {
-        m_restoreTiledAfterUnpinOverride = false;
       }
       if (m_tiled) {
         setFloating(true, false);
@@ -3726,8 +3722,8 @@ namespace umbriel {
       return;
     }
 
-    const bool restoreTiled = m_restoreTiledAfterUnpin;
-    m_restoreTiledAfterUnpin = false;
+    const bool restoreTiled = m_restoreTiledAfterUnpin.value_or(false);
+    m_restoreTiledAfterUnpin.reset();
     m_pinned = false;
     if (restoreTiled) {
       setFloating(false, focus);
