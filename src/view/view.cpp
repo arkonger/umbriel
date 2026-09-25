@@ -2720,7 +2720,7 @@ namespace umbriel {
     if (!assignedScratchpad) {
       assignedScratchpad = inheritScratchpadFromParent(restoreTiled);
     }
-    if (!assignedScratchpad && rule.defaultPinned && *rule.defaultPinned) {
+    if (!assignedScratchpad && rule.defaultPinned && *rule.defaultPinned && !rule.defaultFullscreen.value_or(false)) {
       setPinned(true, false);
     }
     if (assignedScratchpad && !scratchpadOwnsOpeningGeometry()) {
@@ -3707,6 +3707,11 @@ namespace umbriel {
         || pinned == m_pinned) {
       return;
     }
+    kLog.debug(
+        "set_pinned '{}' [{}] -> {} (tiled={}, pinned={}, restore_tiled={})",
+        m_toplevel->app_id != nullptr ? m_toplevel->app_id : "?", static_cast<const void*>(this), pinned, m_tiled,
+        m_pinned, m_restoreTiledAfterUnpin ? std::to_string(*m_restoreTiledAfterUnpin) : "undefined"
+    );
     if (pinned) {
       if (!m_restoreTiledAfterUnpin) {
         m_restoreTiledAfterUnpin = m_tiled;
