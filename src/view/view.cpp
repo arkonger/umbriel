@@ -3019,6 +3019,9 @@ namespace umbriel {
                 .updateRestoreLocation = true,
             }
         );
+        if (rule.defaultFocused.value_or(false)) {
+          scratchpad->summon(scratchpad->nameFor(this), restoreOutput);
+        }
       }
     }
     if (!assignedScratchpad) {
@@ -3062,7 +3065,7 @@ namespace umbriel {
     const bool focusOnMap =
         activateOnMap || (!deferredActivation.value_or(false) && rule.defaultFocused.value_or(true));
     const bool hiddenScratchpad = assignedScratchpad && !m_onActiveWorkspace;
-    if (!m_server->sessionLocked() && focusOnMap && !hiddenScratchpad) {
+    if (!m_server->sessionLocked() && focusOnMap && (!hiddenScratchpad || rule.defaultFocused.value_or(false))) {
       m_server->focusView(this, activateOnMap ? FocusReason::XdgActivation : FocusReason::Startup);
     } else if (deferredActivation.has_value()) {
       setUrgent(true);
