@@ -53,10 +53,6 @@ floating or pinned state that it creates.
 These values apply once when a window opens. Umbriel checks once more when the
 first title arrives because some applications set it after mapping.
 
-Windows with `default_scratchpad` do not summon the scratchpad by default, meaning they
-will open in the hidden scratchpad. Set `default_focused = true` to summon the scratchpad
-on spawn.
-
 Dialogs float by default. Use `default_floating = false` in a matching rule to
 force one into the layout.
 
