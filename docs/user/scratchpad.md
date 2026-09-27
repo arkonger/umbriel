@@ -68,6 +68,9 @@ default_scratchpad = "terminal"
 For example, `foot --app-id scratchpad-terminal` opens hidden in `terminal`.
 With no named definitions, use `default_scratchpad = "default"`.
 
+To summon the scratchpad rather than opening hidden, `default_focused = true`
+must also be set.
+
 The window remembers where and how it would otherwise have opened.
 `default_output`, `default_workspace`, and `default_floating` control that
 restore destination.
