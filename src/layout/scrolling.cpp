@@ -1,7 +1,6 @@
 #include "layout/scrolling.h"
 
 #include "config/config.h"
-#include "view/view.h"
 
 #include <algorithm>
 #include <cmath>
