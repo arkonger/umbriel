@@ -218,6 +218,7 @@ namespace umbriel {
           .bottomGapWeight = saved.bottomGapWeight,
           .widthFrac = saved.widthFraction,
           .savedWidthFrac = saved.savedWidthFraction,
+          .rememberedScrollingExtents = {},
       };
       for (const ScrollingSnapshot::Row& row : saved.rows) {
         View* view = (*resolved)[static_cast<size_t>(row.member)];
@@ -466,7 +467,7 @@ namespace umbriel {
     Column& source = m_columns[static_cast<size_t>(sourceColumn)];
     Column& destination = m_columns[static_cast<size_t>(destinationColumn)];
     // Remember width for later expel
-    view->setSavedScrollingExtent(source.widthFrac);
+    destination.rememberedScrollingExtents[view] = source.widthFrac;
     ensureWeightCount(source);
     ensureWeightCount(destination);
     const int row = rowOf(view);
@@ -502,7 +503,11 @@ namespace umbriel {
     }
     Column column;
     // Restore saved width if exists
-    std::optional<double> width = view->getSavedScrollingExtent();
+    std::optional<double> width;
+    if (source.rememberedScrollingExtents.contains(view)) {
+      width = source.rememberedScrollingExtents[view];
+      source.rememberedScrollingExtents.erase(view);
+    }
     column.widthFrac = width ? *width : m_config->scrolling.defaultExtentFraction.value_or(0.5);
     column.views.push_back(view);
     column.heightWeights.push_back(weight);
