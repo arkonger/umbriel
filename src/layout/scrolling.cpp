@@ -466,7 +466,7 @@ namespace umbriel {
     Column& source = m_columns[static_cast<size_t>(sourceColumn)];
     Column& destination = m_columns[static_cast<size_t>(destinationColumn)];
     // Remember width for later expel
-    destination.rememberedScrollingExtents[view] = source.widthFrac;
+    destination.rememberedScrollingExtents[view] = source.savedWidthFrac > 0 ? source.savedWidthFrac : source.widthFrac;
     ensureWeightCount(source);
     ensureWeightCount(destination);
     const int row = rowOf(view);

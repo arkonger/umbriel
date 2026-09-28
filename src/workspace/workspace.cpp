@@ -1839,7 +1839,7 @@ namespace umbriel {
       for (const Column& column : scrollingLayout()->columns()) {
         auto view = column.views.begin();
         if (view != column.views.end()) {
-          (*view)->m_savedScrollingExtent = column.widthFrac;
+          (*view)->m_savedScrollingExtent = column.savedWidthFrac > 0 ? column.savedWidthFrac : column.widthFrac;
         }
       }
     }
