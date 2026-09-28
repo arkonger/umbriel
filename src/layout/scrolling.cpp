@@ -503,9 +503,8 @@ namespace umbriel {
     Column column;
     // Restore saved width if exists
     std::optional<double> width;
-    if (source.rememberedScrollingExtents.contains(view)) {
-      width = source.rememberedScrollingExtents[view];
-      source.rememberedScrollingExtents.erase(view);
+    if (auto extent = source.rememberedScrollingExtents.extract(view); !extent.empty()) {
+      width = extent.mapped();
     }
     column.widthFrac = width ? *width : m_config->scrolling.defaultExtentFraction.value_or(0.5);
     column.views.push_back(view);

@@ -1831,11 +1831,12 @@ namespace umbriel {
   }
 
   void Workspace::overrideLayoutMode(LayoutMode mode) {
-    // Check if current mode is scrolling
+    // When moving to/from scrolling, the current extents are remembered/restored.
+    // These flags check whether those operations are required.
     const bool isMovingFromScroll = (m_layoutMode == LayoutMode::Scrolling && mode != LayoutMode::Scrolling);
     const bool isMovingToScroll = (m_layoutMode != LayoutMode::Scrolling && mode == LayoutMode::Scrolling);
     if (isMovingFromScroll) {
-      for (Column column : scrollingLayout()->columns()) {
+      for (const Column& column : scrollingLayout()->columns()) {
         auto view = column.views.begin();
         if (view != column.views.end()) {
           (*view)->m_savedScrollingExtent = column.widthFrac;
@@ -1857,8 +1858,9 @@ namespace umbriel {
           scrolling->setWidthFraction(i, *(*view)->m_savedScrollingExtent);
         }
       }
-      if (m_focusedView)
+      if (m_focusedView != nullptr) {
         scrolling->ensureVisible(scrolling->columnOf(m_focusedView), scrollViewportExtent());
+      }
     }
   }
 
