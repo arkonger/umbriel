@@ -1831,37 +1831,10 @@ namespace umbriel {
   }
 
   void Workspace::overrideLayoutMode(LayoutMode mode) {
-    // When moving to/from scrolling, the current extents are remembered/restored.
-    // These flags check whether those operations are required.
-    const bool isMovingFromScroll = (m_layoutMode == LayoutMode::Scrolling && mode != LayoutMode::Scrolling);
-    const bool isMovingToScroll = (m_layoutMode != LayoutMode::Scrolling && mode == LayoutMode::Scrolling);
-    if (isMovingFromScroll) {
-      for (const Column& column : scrollingLayout()->columns()) {
-        auto view = column.views.begin();
-        if (view != column.views.end()) {
-          (*view)->m_savedScrollingExtent = column.savedWidthFrac > 0 ? column.savedWidthFrac : column.widthFrac;
-        }
-      }
-    }
-
     m_layoutModeOverride = mode;
     ResolvedLayoutConfig copy = m_layoutConfig;
     copy.mode = mode;
     applyLayoutConfig(std::move(copy));
-
-    if (isMovingToScroll) {
-      ScrollingLayout* scrolling = scrollingLayout();
-      for (std::size_t i = 0; i < scrolling->columns().size(); i++) {
-        Column column = scrolling->columns()[i];
-        auto view = column.views.begin();
-        if (view != column.views.end() && (*view)->m_savedScrollingExtent) {
-          scrolling->setWidthFraction(i, *(*view)->m_savedScrollingExtent);
-        }
-      }
-      if (m_focusedView != nullptr) {
-        scrolling->ensureVisible(scrolling->columnOf(m_focusedView), scrollViewportExtent());
-      }
-    }
   }
 
   void Workspace::rename(std::string name, size_t index, bool named) {
@@ -1890,6 +1863,11 @@ namespace umbriel {
     const bool centerFocusedChanged = m_layoutConfig.scrolling.centerFocused != layoutConfig.scrolling.centerFocused;
     const bool strutsChanged = m_layoutConfig.struts != layoutConfig.struts;
     const bool directionChanged = m_layoutConfig.scrolling.direction != layoutConfig.scrolling.direction;
+    // When moving to/from scrolling, the current extents are remembered/restored.
+    // These flags check whether those operations are required.
+    const bool isMovingFromScroll =
+        (m_layoutMode == LayoutMode::Scrolling && layoutConfig.mode != LayoutMode::Scrolling);
+    const bool isMovingToScroll = (m_layoutMode != LayoutMode::Scrolling && layoutConfig.mode == LayoutMode::Scrolling);
     m_layoutConfig = std::move(layoutConfig);
     // The event payload is built when the idle runs, so scheduling here reports the mode this call installs, whether
     // it reconfigures the existing layout or replaces it below.
@@ -1911,6 +1889,15 @@ namespace umbriel {
     }
     // The members leave one layout and join another; the next arrange carries them there from their current boxes.
     endLayoutMotion();
+    // Remember extents for later
+    if (isMovingFromScroll) {
+      for (const Column& column : scrollingLayout()->columns()) {
+        auto view = column.views.begin();
+        if (view != column.views.end()) {
+          (*view)->m_savedScrollingExtent = column.savedWidthFrac > 0 ? column.savedWidthFrac : column.widthFrac;
+        }
+      }
+    }
     std::vector<View*> tiledViews;
     for (View* view : m_views) {
       if (m_layout != nullptr && m_layout->columnOf(view) >= 0) {
@@ -1924,6 +1911,24 @@ namespace umbriel {
     m_layout->setConstraints(&viewLayoutConstraints);
     for (View* view : tiledViews) {
       m_layout->insertView(view, static_cast<int>(m_layout->columns().size()));
+    }
+    // Restore previous extents
+    if (isMovingToScroll) {
+      ScrollingLayout* scrolling = scrollingLayout();
+      for (std::size_t i = 0; i < scrolling->columns().size(); i++) {
+        Column column = scrolling->columns()[i];
+        auto view = column.views.begin();
+        if (view != column.views.end() && (*view)->m_savedScrollingExtentPx) {
+          scrolling->setWidthFromPixels(i, scrollViewportExtent(), *(*view)->m_savedScrollingExtentPx);
+          (*view)->m_savedScrollingExtentPx.reset();
+        } else if (view != column.views.end() && (*view)->m_savedScrollingExtent) {
+          scrolling->setWidthFraction(i, *(*view)->m_savedScrollingExtent);
+          (*view)->m_savedScrollingExtent.reset();
+        }
+      }
+      if (m_focusedView != nullptr) {
+        scrolling->ensureVisible(scrolling->columnOf(m_focusedView), scrollViewportExtent());
+      }
     }
     markArrange();
   }
