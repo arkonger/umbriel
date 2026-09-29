@@ -127,7 +127,7 @@ namespace umbriel {
     double bottomGapWeight = 0.0;
     double widthFrac = 0.5;
     double savedWidthFrac = 0.0;
-    std::unordered_map<View*, double> rememberedScrollingExtents;
+    std::vector<double> rememberedScrollingExtents;
   };
 
   struct LayoutTarget {
