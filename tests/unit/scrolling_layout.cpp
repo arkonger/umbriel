@@ -135,12 +135,16 @@ UMBRIEL_TEST(consumeRightStacksIntoTheNextColumn) {
 UMBRIEL_TEST(expelRightUndoesConsumeLeft) {
   Fixture fixture;
   fixture.addColumns(2);
+  CHECK(fixture.layout.setWidthFraction(0, 1.0/3));
+  CHECK(fixture.layout.setWidthFraction(1, 2.0/3));
   CHECK(fixture.layout.consume(stub(1), -1));
   CHECK(fixture.layout.expel(stub(1), 1));
 
   CHECK_EQ(fixture.layout.columns().size(), size_t{2});
   CHECK_EQ(fixture.layout.columnOf(stub(0)), 0);
   CHECK_EQ(fixture.layout.columnOf(stub(1)), 1);
+  CHECK_EQ(fixture.layout.columns()[0].widthFrac, 1.0/3);
+  CHECK_EQ(fixture.layout.columns()[1].widthFrac, 2.0/3);
 }
 
 UMBRIEL_TEST(expelLeftUndoesConsumeRight) {
