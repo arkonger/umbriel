@@ -520,16 +520,15 @@ namespace umbriel {
     if (row >= 0 && row < static_cast<int>(source.heightWeights.size())) {
       source.heightWeights.erase(source.heightWeights.begin() + row);
     }
-    // Restore saved width if exists
-    std::optional<double> width;
+    // A row consumed from its own column expels back to the extent it had there.
+    Column column;
+    column.widthFrac = m_config->scrolling.defaultExtentFraction.value_or(0.5);
     if (row >= 0 && row < static_cast<int>(source.rememberedScrollingExtents.size())) {
-      if (const double extent = source.rememberedScrollingExtents[row]; extent > 0.0) {
-        width = extent;
+      if (const double extent = source.rememberedScrollingExtents[static_cast<size_t>(row)]; extent > 0.0) {
+        column.widthFrac = extent;
       }
       source.rememberedScrollingExtents.erase(source.rememberedScrollingExtents.begin() + row);
     }
-    Column column;
-    column.widthFrac = width ? *width : m_config->scrolling.defaultExtentFraction.value_or(0.5);
     column.views.push_back(view);
     column.heightWeights.push_back(weight);
     column.rememberedScrollingExtents.push_back(0.0);
