@@ -1889,12 +1889,16 @@ namespace umbriel {
     }
     // The members leave one layout and join another; the next arrange carries them there from their current boxes.
     endLayoutMotion();
-    // Remember extents for later
+    // Remember each column's extent on its leading view; the other members join the new layout without one.
     if (isMovingFromScroll) {
       for (const Column& column : scrollingLayout()->columns()) {
-        auto view = column.views.begin();
-        if (view != column.views.end()) {
-          (*view)->m_savedScrollingExtent = column.savedWidthFrac > 0 ? column.savedWidthFrac : column.widthFrac;
+        for (View* view : column.views) {
+          view->m_savedScrollingExtentPx.reset();
+          view->m_savedScrollingExtent.reset();
+        }
+        if (!column.views.empty()) {
+          column.views.front()->m_savedScrollingExtent =
+              column.savedWidthFrac > 0 ? column.savedWidthFrac : column.widthFrac;
         }
       }
     }
@@ -1915,16 +1919,15 @@ namespace umbriel {
     // Restore previous extents
     if (isMovingToScroll) {
       ScrollingLayout* scrolling = scrollingLayout();
-      for (std::size_t i = 0; i < scrolling->columns().size(); i++) {
-        Column column = scrolling->columns()[i];
-        auto view = column.views.begin();
-        if (view != column.views.end() && (*view)->m_savedScrollingExtentPx) {
-          scrolling->setWidthFromPixels(i, scrollViewportExtent(), *(*view)->m_savedScrollingExtentPx);
-          (*view)->m_savedScrollingExtentPx.reset();
-        } else if (view != column.views.end() && (*view)->m_savedScrollingExtent) {
-          scrolling->setWidthFraction(i, *(*view)->m_savedScrollingExtent);
-          (*view)->m_savedScrollingExtent.reset();
+      for (int i = 0; i < static_cast<int>(scrolling->columns().size()); ++i) {
+        View* view = scrolling->columns()[static_cast<size_t>(i)].views.front();
+        if (view->m_savedScrollingExtentPx) {
+          scrolling->setWidthFromPixels(i, scrollViewportExtent(), *view->m_savedScrollingExtentPx);
+        } else if (view->m_savedScrollingExtent) {
+          scrolling->setWidthFraction(i, *view->m_savedScrollingExtent);
         }
+        view->m_savedScrollingExtentPx.reset();
+        view->m_savedScrollingExtent.reset();
       }
       if (m_focusedView != nullptr) {
         scrolling->ensureVisible(scrolling->columnOf(m_focusedView), scrollViewportExtent());
